@@ -5,6 +5,7 @@
 #include "memlayout.h"
 #include "spinlock.h"
 #include "proc.h"
+#include "sysinfo.h"
 
 uint64
 sys_exit(void)
@@ -13,6 +14,17 @@ sys_exit(void)
   argint(0, &n);
   exit(n);
   return 0;  // not reached
+}
+
+// Set the tracing mask for the calling process.
+uint64
+sys_trace(void)
+{
+  int mask;
+
+  argint(0, &mask);
+  myproc()->tracemask = (uint)mask;
+  return 0;
 }
 
 uint64
@@ -90,4 +102,25 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
+}
+
+// Collect system information and copy it into the caller's address space.
+uint64
+sys_sysinfo(void)
+{
+  uint64 addr;
+  struct sysinfo info = {0};
+  struct proc *p = myproc();
+
+  argaddr(0, &addr);
+  info.freemem = freemem();
+  info.nproc = nproc();
+  safestrcpy(info.student_id, "24302010005",
+             sizeof(info.student_id));
+
+  if(copyout(p->pagetable, addr, (char *)&info, sizeof(info)) < 0)
+    return -1;
+
+  printf("my student number is %s\n", info.student_id);
+  return 0;
 }

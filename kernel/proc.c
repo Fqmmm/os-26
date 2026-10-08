@@ -124,6 +124,7 @@ allocproc(void)
 found:
   p->pid = allocpid();
   p->state = USED;
+  p->tracemask = 0; // 默认不跟踪任何系统调用
 
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
@@ -295,6 +296,9 @@ fork(void)
     return -1;
   }
   np->sz = p->sz;
+
+  // Children inherit the parent's system call tracing settings.
+  np->tracemask = p->tracemask;
 
   // copy saved user registers.
   *(np->trapframe) = *(p->trapframe);
@@ -680,4 +684,21 @@ procdump(void)
     printf("%d %s %s", p->pid, state, p->name);
     printf("\n");
   }
+}
+
+// Count occupied process slots, including sleeping and zombie processes.
+uint64
+nproc(void)
+{
+  struct proc *p;
+  uint64 count = 0;
+
+  for(p = proc; p < &proc[NPROC]; p++){
+    acquire(&p->lock);
+    if(p->state != UNUSED)
+      count++;
+    release(&p->lock);
+  }
+
+  return count;
 }

@@ -103,5 +103,6 @@ struct proc {
   struct context context;      // swtch() here to run process
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
+  uint tracemask;             // System calls to trace (one bit per syscall)
   char name[16];               // Process name (debugging)
 };
